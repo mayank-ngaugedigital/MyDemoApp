@@ -50,9 +50,9 @@ node {
             bat """
             cd retrieved-metadata
             git init
-            git config user.name "Jenkins CI"
-            git config user.email "jenkins@example.com"
-            git remote add origin https://${GIT_USER}:${GIT_PASS}@github.com/your-org/qa-repository.git
+            git config user.name "mayank-ngaugedigital"
+            git config user.email "mayank.joshi@ngauge.digital"
+            git remote add origin https://${GIT_USER}:${GIT_PASS}@github.com/mayank-ngaugedigital/MyQA_Repository.git
             git add .
             git commit -m "Auto commit: Retrieved metadata from QA Org - Build ${BUILD_NUMBER}"
             git branch -M ${QA_GIT_BRANCH}
