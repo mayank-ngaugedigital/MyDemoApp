@@ -22,6 +22,34 @@ node {
     }
 
     withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
+        stage('Retrieve Latest Changes') {
+            def rc
+            if (isUnix()) {
+                rc = sh returnStatus: true, script: "\"${toolbelt}\" project retrieve start --manifest manifest/package.xml --target-org ${HUB_ORG}"
+            } else {
+                rc = bat returnStatus: true, script: "\"${toolbelt}\" project retrieve start --manifest manifest/package.xml --target-org ${HUB_ORG}"
+            }
+
+            if (rc != 0) { 
+                error 'Failed to retrieve latest changes from org' 
+            }
+            println "Successfully retrieved latest changes."
+        }
+
+        stage('Check for Conflicts') {
+            def rc
+            if (isUnix()) {
+                rc = sh returnStatus: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG} --dry-run"
+            } else {
+                rc = bat returnStatus: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG} --dry-run"
+            }
+
+            if (rc != 0) { 
+                error 'Conflicts detected! Resolve them before deployment.' 
+            }
+            println "No conflicts detected. Proceeding with deployment."
+        }
+
         stage('Deploy to Dev Hub') {
             def rc
             if (isUnix()) {
@@ -38,16 +66,16 @@ node {
 
             def rmsg
             if (isUnix()) {
-                rmsg = sh returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG}"
+                rmsg = sh returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG} --ignore-conflicts"
             } else {
-                rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG}"
+                rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG} --ignore-conflicts"
             }
 
             println "Deployment Output:\n${rmsg}"
         }
     }
 
-    // Deploying to QA Org after successful deployment to Dev Hub
+    // Deploy to QA Org after successful deployment to Dev Hub
     withCredentials([file(credentialsId: QA_JWT_KEY_CRED_ID, variable: 'qa_jwt_key_file')]) {
         stage('Deploy to QA Org') {
             def rc
@@ -65,9 +93,9 @@ node {
 
             def rmsg
             if (isUnix()) {
-                rmsg = sh returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${QA_HUB_ORG}"
+                rmsg = sh returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${QA_HUB_ORG} --ignore-conflicts"
             } else {
-                rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${QA_HUB_ORG}"
+                rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${QA_HUB_ORG} --ignore-conflicts"
             }
 
             println "QA Deployment Output:\n${rmsg}"
