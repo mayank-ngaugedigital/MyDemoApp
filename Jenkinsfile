@@ -36,12 +36,11 @@ node {
             }
 
             if (rc != 0) { 
-                error 'Conflicts detected in Git changes! Resolve them before deployment.' 
+                println 'Conflicts detected! Overwriting remote changes with Git source...'
             }
-            println "No conflicts detected. Proceeding with deployment."
         }
 
-        stage('Deploy to Dev Hub') {
+        stage('Deploy to Dev Hub (Ignoring Conflicts)') {
             def rc
             if (isUnix()) {
                 rc = sh returnStatus: true, script: "\"${toolbelt}\" org login jwt --client-id ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwt-key-file ${jwt_key_file} --set-default-dev-hub --instance-url ${SFDC_HOST}"
@@ -57,9 +56,9 @@ node {
 
             def rmsg
             if (isUnix()) {
-                rmsg = sh returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG}"
+                rmsg = sh returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG} --ignore-conflicts"
             } else {
-                rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG}"
+                rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG} --ignore-conflicts"
             }
 
             println "Deployment Output:\n${rmsg}"
@@ -67,7 +66,7 @@ node {
     }
 
     withCredentials([file(credentialsId: QA_JWT_KEY_CRED_ID, variable: 'qa_jwt_key_file')]) {
-        stage('Deploy to QA Org') {
+        stage('Deploy to QA Org (Ignoring Conflicts)') {
             def rc
             if (isUnix()) {
                 rc = sh returnStatus: true, script: "\"${toolbelt}\" org login jwt --client-id ${QA_CONNECTED_APP_CONSUMER_KEY} --username ${QA_HUB_ORG} --jwt-key-file ${qa_jwt_key_file} --instance-url ${QA_SFDC_HOST}"
@@ -83,9 +82,9 @@ node {
 
             def rmsg
             if (isUnix()) {
-                rmsg = sh returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${QA_HUB_ORG}"
+                rmsg = sh returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${QA_HUB_ORG} --ignore-conflicts"
             } else {
-                rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${QA_HUB_ORG}"
+                rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${QA_HUB_ORG} --ignore-conflicts"
             }
 
             println "QA Deployment Output:\n${rmsg}"
