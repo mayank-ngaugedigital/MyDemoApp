@@ -22,7 +22,7 @@ node {
         checkout([
             $class: 'GitSCM',
             branches: [[name: GIT_BRANCH]],
-            userRemoteConfigs: [[url: QA_GIT_REPO_URL]]
+            userRemoteConfigs: [[url: GIT_REPO_URL]]
         ])
     }
 
