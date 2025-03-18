@@ -12,10 +12,10 @@ node {
     def JWT_KEY_CRED_ID = env.JWT_CRED_ID_DH
     def CONNECTED_APP_CONSUMER_KEY = env.CONNECTED_APP_CONSUMER_KEY_DH
 
-    def QA_HUB_ORG = "test-jpzd4qsbxycg@example.com"
+    def QA_HUB_ORG = "mayank.joshi122@agentforce.com"
     def QA_SFDC_HOST = "https://login.salesforce.com/"
     def QA_JWT_KEY_CRED_ID = "b57e8c8c-1d7b-4968-86ef-a1b86e39504f"
-    def QA_CONNECTED_APP_CONSUMER_KEY = "3MVG9W_ynb0f8co7mSJIX.c3zAZeQCvHkCwRZnmYUQ0FBm1NHRC8AhweqWnSgvGA_A9qL6sZKWc1FVZJ2OW9y"
+    def QA_CONNECTED_APP_CONSUMER_KEY = "3MVG9dAEux2v1sLue1HMQKDk3cI6_j04l_8qbHtsM8yE7HFkAVvKXlHIB2yEoavswobilwgHmAPznoz_cREvZ"
 
     def toolbelt = "C:/Program Files/sf/bin/sfdx.cmd"
     stage('Checkout Source from Git') {
