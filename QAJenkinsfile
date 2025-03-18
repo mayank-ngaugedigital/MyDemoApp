@@ -49,11 +49,12 @@ node {
         stage('Push Metadata to QA GitHub Repository') {
             bat """
             cd retrieved-metadata
+            rm -rf retrieved-metadata/.git
             git init
             git config user.name "mayank-ngaugedigital"
             git config user.email "mayank.joshi@ngauge.digital"
             git remote remove origin
-            git remote add origin https://git:${GIT_PASS}@github.com/mayank-ngaugedigital/MyQA_Repository.git
+            git remote add origin https://mayank-ngaugedigital:Admingithub@1234@github.com/mayank-ngaugedigital/MyQA_Repository.git
             git add .
             git commit -m "Auto commit: Retrieved metadata from QA Org - Build ${BUILD_NUMBER}"
             git branch -M ${QA_GIT_BRANCH}
