@@ -58,7 +58,7 @@ node {
             git config user.name "mayank-ngaugedigital"
             git config user.email "mayank.joshi@ngauge.digital"
             git remote remove origin || echo "No existing origin to remove"
-            git remote add origin https://${GIT_USER}:${GIT_PASS}@github.com/mayank-ngaugedigital/MyQA_Repository.git
+            git remote add origin https://github.com/mayank-ngaugedigital/MyQA_Repository.git
             git add .
             git commit -m "Auto commit: Retrieved metadata from QA Org - Build ${BUILD_NUMBER}"
             git branch -M ${GIT_BRANCH}
