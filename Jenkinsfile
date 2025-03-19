@@ -16,24 +16,9 @@ node {
     def QA_SFDC_HOST = "https://login.salesforce.com/"
     def QA_JWT_KEY_CRED_ID = "b57e8c8c-1d7b-4968-86ef-a1b86e39504f"
     def QA_CONNECTED_APP_CONSUMER_KEY = "3MVG9dAEux2v1sLue1HMQKDk3cI6_j04l_8qbHtsM8yE7HFkAVvKXlHIB2yEoavswobilwgHmAPznoz_cREvZ"
+    
 
-    def findSfdxPath = {
-        def command = isUnix() ? 'which sfdx' : 'where sfdx'
-        def process = command.execute()
-        process.waitFor()
-
-        def output = process.text.trim()
-        return output ? output.split("\n")[0] : null
-    }
-
-    def toolbelt = findSfdxPath()
-
-    if (toolbelt) {
-        println "SFDX Path: $toolbelt"
-    } else {
-        println "SFDX CLI not found."
-    }
-
+    def toolbelt = "C:/Program Files/sf/bin/sfdx.cmd"
     stage('Checkout Source from Git') {
         checkout([
             $class: 'GitSCM',
