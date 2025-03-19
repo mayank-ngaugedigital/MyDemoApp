@@ -17,7 +17,23 @@ node {
     def QA_JWT_KEY_CRED_ID = "b57e8c8c-1d7b-4968-86ef-a1b86e39504f"
     def QA_CONNECTED_APP_CONSUMER_KEY = "3MVG9dAEux2v1sLue1HMQKDk3cI6_j04l_8qbHtsM8yE7HFkAVvKXlHIB2yEoavswobilwgHmAPznoz_cREvZ"
 
-    def toolbelt = "C:/Program Files/sf/bin/sfdx.cmd"
+    def findSfdxPath() {
+    def command = System.properties['os.name'].toLowerCase().contains('windows') ? 'where sfdx' : 'which sfdx'
+    def process = command.execute()
+    process.waitFor()
+
+    def output = process.text.trim()
+    return output ? output.split("\n")[0] : null
+    }
+
+    def toolbelt = findSfdxPath()
+
+    if (toolbelt) {
+        println "SFDX Path: $toolbelt"
+    } else {
+        println "SFDX CLI not found."
+    }
+
     stage('Checkout Source from Git') {
         checkout([
             $class: 'GitSCM',
