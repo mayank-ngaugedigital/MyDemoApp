@@ -25,7 +25,6 @@ node {
             userRemoteConfigs: [[url: GIT_REPO_URL]]
         ])
     }
-
     withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
         stage('Check for Conflicts') {
             def rc
@@ -37,31 +36,9 @@ node {
 
             if (rc != 0) { 
                 println 'Conflicts detected! Overwriting remote changes with Git source...'
-            }
-        }
-
-        stage('Deploy to Dev Hub (Ignoring Conflicts)') {
-            def rc
-            if (isUnix()) {
-                rc = sh returnStatus: true, script: "\"${toolbelt}\" org login jwt --client-id ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwt-key-file ${jwt_key_file} --set-default-dev-hub --instance-url ${SFDC_HOST}"
             } else {
-                rc = bat returnStatus: true, script: "\"${toolbelt}\" org login jwt --client-id ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwt-key-file \"${jwt_key_file}\" --set-default-dev-hub --instance-url ${SFDC_HOST}"
+                println 'No conflicts detected.'
             }
-
-            if (rc != 0) { 
-                error 'Hub org authorization failed' 
-            }
-
-            println "Authorization successful, proceeding with deployment."
-
-            def rmsg
-            if (isUnix()) {
-                rmsg = sh returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG} --ignore-conflicts"
-            } else {
-                rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG} --ignore-conflicts"
-            }
-
-            println "Deployment Output:\n${rmsg}"
         }
     }
 
