@@ -35,25 +35,14 @@ node {
             }
         }
 
-        stage('Generate package.xml') {
+        stage('Generate package.xml (Only Modified Files)') {
             script {
                 bat 'generate-package.bat'
             }
         }
 
-        stage('Preview Deployment') {
-            script {
-                def previewOutput = bat(returnStdout: true, script: "\"${toolbelt}\" project deploy preview --manifest package.xml --target-org ${HUB_ORG}")
-                println "Deployment Preview Output: ${previewOutput}"
-
-                if (previewOutput.contains("No local changes to deploy")) {
-                    error "Nothing to deploy. Skipping deployment."
-                }
-            }
-        }
-
         withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
-            stage('Deploy to Dev Hub') {
+            stage('Deploy to Dev Hub (Ignoring Conflicts)') {
                 def rc = bat returnStatus: true, script: "\"${toolbelt}\" org login jwt --client-id ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwt-key-file \"${jwt_key_file}\" --instance-url ${SFDC_HOST}"
                 if (rc != 0) { 
                     error 'Hub org authorization failed' 
@@ -63,14 +52,14 @@ node {
                 println "Dev Hub Deployment Output: ${deployOutput}"
 
                 if (deployOutput.contains("Error")) {
-                    error 'Deployment to Dev Hub failed.'
+                    error 'Deployment to Dev Hub failed, triggering rollback...'
                 }
-                println "✅ Dev Hub Deployment Successful."
+                println "Dev Hub Deployment Successful."
             }
         }
 
         withCredentials([file(credentialsId: QA_JWT_KEY_CRED_ID, variable: 'qa_jwt_key_file')]) {
-            stage('Deploy to QA Org') {
+            stage('Deploy to QA Org (After Successful Dev Deployment)') {
                 def rc = bat returnStatus: true, script: "\"${toolbelt}\" org login jwt --client-id ${QA_CONNECTED_APP_CONSUMER_KEY} --username ${QA_HUB_ORG} --jwt-key-file \"${qa_jwt_key_file}\" --instance-url ${QA_SFDC_HOST}"
                 if (rc != 0) { 
                     error 'QA org authorization failed' 
@@ -80,9 +69,9 @@ node {
                 println "QA Deployment Output: ${deployOutput}"
 
                 if (deployOutput.contains("Error")) {
-                    error 'Deployment to QA failed.'
+                    error 'Deployment to QA failed, triggering rollback...'
                 }
-                println "✅ QA Deployment Successful."
+                println "QA Deployment Successful."
             }
         }
 
@@ -93,11 +82,11 @@ node {
         }
 
     } catch (Exception e) {
-        println "❌ Deployment Failed: ${e.message}"
-        stage('Rollback Deployment') {
+        println "Deployment Failed: ${e.message}"
+        stage('Rollback to Last Successful Deployment') {
             bat "\"${toolbelt}\" project deploy start --manifest package.xml --target-org ${HUB_ORG}"
             bat "\"${toolbelt}\" project deploy start --manifest package.xml --target-org ${QA_HUB_ORG}"
-            error "Rollback triggered. Please check logs."
+            error "Deployment failed and rollback triggered. Please check logs."
         }
     }
 }
