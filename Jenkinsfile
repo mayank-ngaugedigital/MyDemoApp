@@ -27,55 +27,37 @@ node {
         ])
     }
 
+    stage('Generate package.xml') {
+        echo "Generating package.xml using generate_package.bat"
+        bat script: 'generate_package.bat'
+    }
+
     withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
         stage('Check for Conflicts and Retrieve Remote Changes') {
-            def rc
-            if (isUnix()) {
-                rc = sh returnStatus: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG} --dry-run"
-            } else {
-                rc = bat returnStatus: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG} --dry-run"
-            }
+            def rc = bat returnStatus: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG} --dry-run"
 
             if (rc != 0) {
-                println 'Conflicts detected! Retrieving remote changes for manual merge...'
-                
-                if (isUnix()) {
-                    sh "\"${toolbelt}\" project retrieve start --manifest manifest/package.xml --target-org ${HUB_ORG}"
-                } else {
-                    bat "\"${toolbelt}\" project retrieve start --manifest manifest/package.xml --target-org ${HUB_ORG}"
-                }
-                
-                println 'Please resolve conflicts manually before proceeding.'
+                echo 'Conflicts detected! Retrieving remote changes for manual merge...'
+                bat "\"${toolbelt}\" project retrieve start --manifest manifest/package.xml --target-org ${HUB_ORG}"
                 error "Merge conflicts found. Resolve them manually and restart the build."
             } else {
-                println 'No conflicts detected.'
+                echo 'No conflicts detected.'
             }
         }
     }
 
     withCredentials([file(credentialsId: QA_JWT_KEY_CRED_ID, variable: 'qa_jwt_key_file')]) {
         stage('Deploy to QA Org After Merging') {
-            def rc
-            if (isUnix()) {
-                rc = sh returnStatus: true, script: "\"${toolbelt}\" org login jwt --client-id ${QA_CONNECTED_APP_CONSUMER_KEY} --username ${QA_HUB_ORG} --jwt-key-file ${qa_jwt_key_file} --instance-url ${QA_SFDC_HOST}"
-            } else {
-                rc = bat returnStatus: true, script: "\"${toolbelt}\" org login jwt --client-id ${QA_CONNECTED_APP_CONSUMER_KEY} --username ${QA_HUB_ORG} --jwt-key-file \"${qa_jwt_key_file}\" --instance-url ${QA_SFDC_HOST}"
-            }
+            def rc = bat returnStatus: true, script: "\"${toolbelt}\" org login jwt --client-id ${QA_CONNECTED_APP_CONSUMER_KEY} --username ${QA_HUB_ORG} --jwt-key-file \"${qa_jwt_key_file}\" --instance-url ${QA_SFDC_HOST}"
 
             if (rc != 0) { 
                 error 'QA org authorization failed' 
             }
 
-            println "QA Org Authorization successful, proceeding with QA deployment."
+            echo "QA Org Authorization successful, proceeding with QA deployment."
 
-            def rmsg
-            if (isUnix()) {
-                rmsg = sh returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${QA_HUB_ORG}"
-            } else {
-                rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${QA_HUB_ORG}"
-            }
-
-            println "QA Deployment Output:\n${rmsg}"
+            def rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${QA_HUB_ORG}"
+            echo "QA Deployment Output:\n${rmsg}"
         }
     }
 }
