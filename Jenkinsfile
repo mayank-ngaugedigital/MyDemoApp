@@ -1,3 +1,5 @@
+import groovy.json.JsonSlurperClassic
+
 node {
     def BUILD_NUMBER = env.BUILD_NUMBER
     def RUN_ARTIFACT_DIR = "tests/${BUILD_NUMBER}"
@@ -10,9 +12,13 @@ node {
     def JWT_KEY_CRED_ID = env.JWT_CRED_ID_DH
     def CONNECTED_APP_CONSUMER_KEY = env.CONNECTED_APP_CONSUMER_KEY_DH
 
-    def toolbelt = "C:/Program Files/sf/bin/sfdx.cmd"
-    def changedFiles = []
+    def QA_HUB_ORG = "mayank.joshi122@agentforce.com"
+    def QA_SFDC_HOST = "https://login.salesforce.com/"
+    def QA_JWT_KEY_CRED_ID = "b57e8c8c-1d7b-4968-86ef-a1b86e39504f"
+    def QA_CONNECTED_APP_CONSUMER_KEY = "3MVG9dAEux2v1sLue1HMQKDk3cI6_j04l_8qbHtsM8yE7HFkAVvKXlHIB2yEoavswobilwgHmAPznoz_cREvZ"
+    
 
+    def toolbelt = "C:/Program Files/sf/bin/sfdx.cmd"
     stage('Checkout Source from Git') {
         checkout([
             $class: 'GitSCM',
@@ -20,54 +26,46 @@ node {
             userRemoteConfigs: [[url: GIT_REPO_URL]]
         ])
     }
+    withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
+        stage('Check for Conflicts') {
+            def rc
+            if (isUnix()) {
+                rc = sh returnStatus: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG} --dry-run"
+            } else {
+                rc = bat returnStatus: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG} --dry-run"
+            }
 
-    stage('Detect Changed Files') {
-        script {
-            try {
-                def lastCommit = bat(script: 'git rev-parse --verify HEAD', returnStdout: true).trim()
-                
-                if (lastCommit) {
-                    changedFiles = bat(script: "git diff --name-only HEAD~1", returnStdout: true).trim().split("\n")
-                } else {
-                    echo "No previous commits found. Treating all files as changed."
-                    changedFiles = bat(script: "git ls-files", returnStdout: true).trim().split("\n")
-                }
-
-                if (changedFiles.isEmpty() || changedFiles[0].trim() == '') {
-                    echo "No changed files detected. Skipping deployment."
-                    currentBuild.result = 'SUCCESS'
-                    return
-                } else {
-                    echo "Changed files: ${changedFiles.join(', ')}"
-                }
-            } catch (Exception e) {
-                error "Error detecting changed files: ${e.message}"
+            if (rc != 0) { 
+                println 'Conflicts detected! Overwriting remote changes with Git source...'
+            } else {
+                println 'No conflicts detected.'
             }
         }
-    }
+        }
 
-    withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
-        stage('Deploy Changed Files') {
-            script {
-                try {
-                    def deployCommand = "\"${toolbelt}\" project deploy start --source-dir ${changedFiles.join(' ')} --target-org ${HUB_ORG}"
-                    def rc
-
-                    if (isUnix()) {
-                        rc = bat returnStatus: true, script: deployCommand
-                    } else {
-                        rc = bat returnStatus: true, script: deployCommand
-                    }
-
-                    if (rc != 0) {
-                        error 'Deployment failed'
-                    } else {
-                        echo "Deployment successful"
-                    }
-                } catch (Exception e) {
-                    error "Error during deployment: ${e.message}"
-                }
+    withCredentials([file(credentialsId: QA_JWT_KEY_CRED_ID, variable: 'qa_jwt_key_file')]) {
+        stage('Deploy to QA Org (Ignoring Conflicts)') {
+            def rc
+            if (isUnix()) {
+                rc = sh returnStatus: true, script: "\"${toolbelt}\" org login jwt --client-id ${QA_CONNECTED_APP_CONSUMER_KEY} --username ${QA_HUB_ORG} --jwt-key-file ${qa_jwt_key_file} --instance-url ${QA_SFDC_HOST}"
+            } else {
+                rc = bat returnStatus: true, script: "\"${toolbelt}\" org login jwt --client-id ${QA_CONNECTED_APP_CONSUMER_KEY} --username ${QA_HUB_ORG} --jwt-key-file \"${qa_jwt_key_file}\" --instance-url ${QA_SFDC_HOST}"
             }
+
+            if (rc != 0) { 
+                error 'QA org authorization failed' 
+            }
+
+            println "QA Org Authorization successful, proceeding with QA deployment."
+
+            def rmsg
+            if (isUnix()) {
+                rmsg = sh returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${QA_HUB_ORG} --ignore-conflicts"
+            } else {
+                rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${QA_HUB_ORG} --ignore-conflicts"
+            }
+
+            println "QA Deployment Output:\n${rmsg}"
         }
     }
 }
