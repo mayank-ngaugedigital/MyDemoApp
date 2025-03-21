@@ -13,6 +13,9 @@ for /f "delims=" %%i in ('git diff --name-only HEAD^ HEAD') do (
     for %%a in (!filePath!) do set "fileName=%%~na"
     for %%a in (!filePath!) do set "metaType=%%~dpa"
 
+    REM Fixing path format for Windows
+    set "metaType=!metaType:/=\!"
+
     if "!metaType!"=="force-app\main\default\classes\" (
         echo   ^<members^>!fileName!^</members^> >> package.xml
         echo   ^<name^>ApexClass^</name^> >> package.xml
