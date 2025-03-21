@@ -24,13 +24,13 @@ node {
     stage('Detect Changed Files') {
         script {
             try {
-                def lastCommit = sh(script: 'git rev-parse --verify HEAD', returnStdout: true).trim()
+                def lastCommit = bat(script: 'git rev-parse --verify HEAD', returnStdout: true).trim()
                 
                 if (lastCommit) {
-                    changedFiles = sh(script: "git diff --name-only HEAD~1", returnStdout: true).trim().split("\n")
+                    changedFiles = bat(script: "git diff --name-only HEAD~1", returnStdout: true).trim().split("\n")
                 } else {
                     echo "No previous commits found. Treating all files as changed."
-                    changedFiles = sh(script: "git ls-files", returnStdout: true).trim().split("\n")
+                    changedFiles = bat(script: "git ls-files", returnStdout: true).trim().split("\n")
                 }
 
                 if (changedFiles.isEmpty() || changedFiles[0].trim() == '') {
@@ -54,7 +54,7 @@ node {
                     def rc
 
                     if (isUnix()) {
-                        rc = sh returnStatus: true, script: deployCommand
+                        rc = bat returnStatus: true, script: deployCommand
                     } else {
                         rc = bat returnStatus: true, script: deployCommand
                     }
