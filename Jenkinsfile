@@ -37,27 +37,35 @@ node {
             def rc = bat returnStatus: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${HUB_ORG} --dry-run"
 
             if (rc != 0) {
-                echo 'Conflicts detected! Retrieving remote changes for manual merge...'
-                bat "\"${toolbelt}\" project retrieve start --manifest manifest/package.xml --target-org ${HUB_ORG}"
-                error "Merge conflicts found. Resolve them manually and restart the build."
+                echo 'Conflicts detected! Attempting to auto-merge...'
+                
+                // Retrieve remote changes
+                def retrieveRc = bat returnStatus: true, script: "\"${toolbelt}\" project retrieve start --manifest manifest/package.xml --target-org ${HUB_ORG}"
+                
+                if (retrieveRc != 0) {
+                    echo 'Auto-merge failed. Please resolve conflicts manually before proceeding.'
+                    error "Merge conflicts found. Resolve them manually and restart the build."
+                } else {
+                    echo 'Auto-merge successful. Continuing with deployment...'
+                }
             } else {
                 echo 'No conflicts detected.'
             }
         }
     }
 
-    withCredentials([file(credentialsId: QA_JWT_KEY_CRED_ID, variable: 'qa_jwt_key_file')]) {
-        stage('Deploy to QA Org After Merging') {
-            def rc = bat returnStatus: true, script: "\"${toolbelt}\" org login jwt --client-id ${QA_CONNECTED_APP_CONSUMER_KEY} --username ${QA_HUB_ORG} --jwt-key-file \"${qa_jwt_key_file}\" --instance-url ${QA_SFDC_HOST}"
+        withCredentials([file(credentialsId: QA_JWT_KEY_CRED_ID, variable: 'qa_jwt_key_file')]) {
+            stage('Deploy to QA Org After Merging') {
+                def rc = bat returnStatus: true, script: "\"${toolbelt}\" org login jwt --client-id ${QA_CONNECTED_APP_CONSUMER_KEY} --username ${QA_HUB_ORG} --jwt-key-file \"${qa_jwt_key_file}\" --instance-url ${QA_SFDC_HOST}"
 
-            if (rc != 0) { 
-                error 'QA org authorization failed' 
+                if (rc != 0) { 
+                    error 'QA org authorization failed' 
+                }
+
+                echo "QA Org Authorization successful, proceeding with QA deployment."
+
+                def rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${QA_HUB_ORG}"
+                echo "QA Deployment Output:\n${rmsg}"
             }
-
-            echo "QA Org Authorization successful, proceeding with QA deployment."
-
-            def rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${QA_HUB_ORG}"
-            echo "QA Deployment Output:\n${rmsg}"
         }
     }
-}
