@@ -25,6 +25,10 @@ for /f "delims=" %%i in ('git diff --name-only HEAD^ HEAD') do (
         echo   ^<members^>!fileName!^</members^> >> package.xml
         echo   ^<name^>LightningComponentBundle^</name^> >> package.xml
     )
+    if "!metaType!"=="force-app\main\default\profiles\" (
+        echo   ^<members^>!fileName!^</members^> >> package.xml
+        echo   ^<name^>Profile^</name^> >> package.xml
+    )
 )
 
 echo ^<version^>63.0^</version^> >> package.xml
