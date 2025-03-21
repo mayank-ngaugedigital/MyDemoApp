@@ -10,11 +10,6 @@ node {
     def JWT_KEY_CRED_ID = env.JWT_CRED_ID_DH
     def CONNECTED_APP_CONSUMER_KEY = env.CONNECTED_APP_CONSUMER_KEY_DH
 
-    def QA_HUB_ORG = "mayank.joshi122@agentforce.com"
-    def QA_SFDC_HOST = "https://login.salesforce.com/"
-    def QA_JWT_KEY_CRED_ID = "b57e8c8c-1d7b-4968-86ef-a1b86e39504f"
-    def QA_CONNECTED_APP_CONSUMER_KEY = "3MVG9dAEux2v1sLue1HMQKDk3cI6_j04l_8qbHtsM8yE7HFkAVvKXlHIB2yEoavswobilwgHmAPznoz_cREvZ"
-
     def toolbelt = "C:/Program Files/sf/bin/sfdx.cmd"
     def changedFiles = []
 
@@ -29,10 +24,16 @@ node {
     stage('Detect Changed Files') {
         script {
             try {
-                def lastCommit = bat(script: 'git rev-parse HEAD~1', returnStdout: true).trim()
-                changedFiles = bat(script: "git diff --name-only ${lastCommit}", returnStdout: true).trim().split("\n")
+                def lastCommit = sh(script: 'git rev-parse --verify HEAD', returnStdout: true).trim()
+                
+                if (lastCommit) {
+                    changedFiles = sh(script: "git diff --name-only HEAD~1", returnStdout: true).trim().split("\n")
+                } else {
+                    echo "No previous commits found. Treating all files as changed."
+                    changedFiles = sh(script: "git ls-files", returnStdout: true).trim().split("\n")
+                }
 
-                if (changedFiles.length == 0 || changedFiles[0] == '') {
+                if (changedFiles.isEmpty() || changedFiles[0].trim() == '') {
                     echo "No changed files detected. Skipping deployment."
                     currentBuild.result = 'SUCCESS'
                     return
