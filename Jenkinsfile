@@ -64,7 +64,7 @@ node {
 
                 echo "QA Org Authorization successful, proceeding with QA deployment."
 
-                def rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --source-dir force-app/main/default/classes --target-org ${QA_HUB_ORG}"
+                def rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${QA_HUB_ORG} --verbose"
                 
 
                 echo "QA Deployment Output:\n${rmsg}"
