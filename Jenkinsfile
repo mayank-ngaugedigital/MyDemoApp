@@ -26,6 +26,15 @@ node {
             ])
         }
 
+        stage('Check for Changes Before Deployment') {
+            script {
+                def changes = bat(script: "git diff --name-only HEAD~1", returnStdout: true).trim()
+                if (!changes) {
+                    error "No changes detected. Skipping deployment."
+                }
+            }
+        }
+
         stage('Generate package.xml (Only Modified Files)') {
             script {
                 bat 'generate-package.bat'
@@ -39,8 +48,10 @@ node {
                     error 'Hub org authorization failed' 
                 }
 
-                def deployOutput = bat returnStatus: true, script: "\"${toolbelt}\" project deploy start --manifest package.xml --target-org ${HUB_ORG} --ignore-conflicts"
-                if (deployOutput != 0) {
+                def deployOutput = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest package.xml --target-org ${HUB_ORG} --ignore-conflicts"
+                println "Dev Hub Deployment Output: ${deployOutput}"
+
+                if (deployOutput.contains("Error")) {
                     error 'Deployment to Dev Hub failed, triggering rollback...'
                 }
                 println "Dev Hub Deployment Successful."
@@ -54,8 +65,10 @@ node {
                     error 'QA org authorization failed' 
                 }
 
-                def deployOutput = bat returnStatus: true, script: "\"${toolbelt}\" project deploy start --manifest package.xml --target-org ${QA_HUB_ORG} --ignore-conflicts"
-                if (deployOutput != 0) {
+                def deployOutput = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest package.xml --target-org ${QA_HUB_ORG} --ignore-conflicts"
+                println "QA Deployment Output: ${deployOutput}"
+
+                if (deployOutput.contains("Error")) {
                     error 'Deployment to QA failed, triggering rollback...'
                 }
                 println "QA Deployment Successful."
@@ -71,8 +84,8 @@ node {
     } catch (Exception e) {
         println "Deployment Failed: ${e.message}"
         stage('Rollback to Last Successful Deployment') {
-            bat "\"${toolbelt}\" project deploy start --manifest package.xml --target-org ${HUB_ORG} --rollback-on-error"
-            bat "\"${toolbelt}\" project deploy start --manifest package.xml --target-org ${QA_HUB_ORG} --rollback-on-error"
+            bat "\"${toolbelt}\" project deploy start --manifest package.xml --target-org ${HUB_ORG}"
+            bat "\"${toolbelt}\" project deploy start --manifest package.xml --target-org ${QA_HUB_ORG}"
             error "Deployment failed and rollback triggered. Please check logs."
         }
     }
