@@ -4,6 +4,7 @@ public with sharing class ContactController {
     public static List<Contact> getContactList() {
         String name = 'Demo Test';
         String testname = 'Testing pipeline';
+        String testname2 = 'Testing pipeline';
         return [SELECT Id, Name, Title, Phone, Email FROM Contact  LIMIT 10];
     }
 
