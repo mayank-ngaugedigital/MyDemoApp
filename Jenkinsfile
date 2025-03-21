@@ -26,7 +26,7 @@ node {
     }
 
     stage('Detect Changed Files') {
-        def changedFiles = sh(script: 'git diff --name-only HEAD~1', returnStdout: true).trim().split('\n')
+        def changedFiles = bat(script: 'git diff --name-only HEAD~1', returnStdout: true).trim().split('\n')
         
         if (changedFiles.length == 0 || changedFiles[0] == '') {
             println "No changed files detected. Skipping deployment."
