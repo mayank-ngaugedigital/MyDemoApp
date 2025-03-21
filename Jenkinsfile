@@ -53,25 +53,29 @@ node {
             }
         }
     }
-        withCredentials([file(credentialsId: QA_JWT_KEY_CRED_ID, variable: 'qa_jwt_key_file')]) {
+    
+    withCredentials([file(credentialsId: QA_JWT_KEY_CRED_ID, variable: 'qa_jwt_key_file')]) {
 
-            stage('Generate package.xml') {
-                echo "Generating package.xml for changed components"
-                bat script: 'generate-package.bat'
+        stage('Generate package.xml') {
+            echo "Generating package.xml for changed components"
+            bat script: 'generate-package.bat' // Ensure the script runs from the correct path
+
+            echo "Checking if package.xml was generated..."
+            bat script: 'dir manifest\\package.xml'
+        }
+
+        stage('Deploy to QA Org After Merging') {
+            def rc = bat returnStatus: true, script: "\"${toolbelt}\" org login jwt --client-id ${QA_CONNECTED_APP_CONSUMER_KEY} --username ${QA_HUB_ORG} --jwt-key-file \"${qa_jwt_key_file}\" --instance-url ${QA_SFDC_HOST}"
+
+            if (rc != 0) { 
+                error 'QA org authorization failed' 
             }
 
-            stage('Deploy to QA Org After Merging') {
-                def rc = bat returnStatus: true, script: "\"${toolbelt}\" org login jwt --client-id ${QA_CONNECTED_APP_CONSUMER_KEY} --username ${QA_HUB_ORG} --jwt-key-file \"${qa_jwt_key_file}\" --instance-url ${QA_SFDC_HOST}"
+            echo "QA Org Authorization successful, proceeding with QA deployment."
 
-                if (rc != 0) { 
-                    error 'QA org authorization failed' 
-                }
+            def rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest manifest/package.xml --target-org ${QA_HUB_ORG} --verbose"
 
-                echo "QA Org Authorization successful, proceeding with QA deployment."
-
-                def rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start --manifest package.xml --target-org ${QA_HUB_ORG} --verbose"
-
-                echo "QA Deployment Output:\n${rmsg}"
-            }
+            echo "QA Deployment Output:\n${rmsg}"
         }
     }
+}
