@@ -29,7 +29,7 @@ node {
 
     stage('Generate package.xml') {
         echo "Generating package.xml using generate_package.bat"
-        bat script: 'generate_package.bat'
+        bat script: 'generate-package.bat'
     }
 
     withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
